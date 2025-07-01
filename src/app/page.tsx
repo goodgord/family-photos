@@ -1,103 +1,221 @@
-import Image from "next/image";
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { User } from '@supabase/supabase-js'
+import Layout from '@/components/Layout'
+import Image from 'next/image'
+
+interface Photo {
+  id: string
+  filename: string
+  original_filename: string
+  caption: string | null
+  file_path: string
+  uploaded_at: string
+  uploaded_by: string
+}
+
+interface PhotoWithUrl extends Photo {
+  imageUrl: string | null
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [photos, setPhotos] = useState<PhotoWithUrl[]>([])
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
+  const [email, setEmail] = useState('')
+  const supabase = createClient()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    getUser()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  useEffect(() => {
+    if (user) {
+      loadPhotos()
+    }
+  }, [user])
+
+  const getImageUrl = async (filePath: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('family-photos')
+        .createSignedUrl(filePath, 60 * 60) // 1 hour expiry
+      
+      if (error) {
+        console.error('Error creating signed URL:', error)
+        return null
+      }
+      
+      return data.signedUrl
+    } catch (error) {
+      console.error('Error getting image URL:', error)
+      return null
+    }
+  }
+
+  const loadPhotos = async () => {
+    setLoadingPhotos(true)
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .order('uploaded_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading photos:', error)
+      } else if (data) {
+        // Get signed URLs for all photos
+        const photosWithUrls = await Promise.all(
+          data.map(async (photo) => ({
+            ...photo,
+            imageUrl: await getImageUrl(photo.file_path)
+          }))
+        )
+        setPhotos(photosWithUrls)
+      }
+    } catch (error) {
+      console.error('Error loading photos:', error)
+    } finally {
+      setLoadingPhotos(false)
+    }
+  }
+
+  const signIn = async () => {
+    if (!email) {
+      alert('Please enter your email')
+      return
+    }
+    
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email,
+    })
+    
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
+      alert('Check your email for the login link!')
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-8">Loading...</h1>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
+  }
+
+  if (!user) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center max-w-md">
+          <h1 className="text-4xl font-bold mb-8">Family Photos</h1>
+          <p className="text-gray-600 mb-8">
+            A private space for our family to share precious moments
+          </p>
+          <div className="mb-4">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  signIn()
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button 
+            onClick={signIn}
+            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Sign In with Magic Link
+          </button>
+          <p className="mt-4 text-sm text-gray-600">
+            We'll send you a secure login link
+          </p>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <Layout user={user}>
+      <div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Our Family Photos</h1>
+          <p className="text-gray-600">{photos.length} photos</p>
+        </div>
+
+        {loadingPhotos ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading photos...</p>
+          </div>
+        ) : photos.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">No photos yet. Start sharing your memories!</p>
+            <a 
+              href="/upload"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Upload First Photo
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {photos.map((photo) => (
+              <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="aspect-square relative">
+                  {photo.imageUrl ? (
+                    <Image
+                      src={photo.imageUrl}
+                      alt={photo.original_filename}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <p className="text-gray-500">Loading...</p>
+                    </div>
+                  )}
+                </div>
+                {photo.caption && (
+                  <div className="p-3">
+                    <p className="text-sm text-gray-700">{photo.caption}</p>
+                  </div>
+                )}
+                <div className="px-3 pb-3">
+                  <p className="text-xs text-gray-500">
+                    {new Date(photo.uploaded_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Layout>
+  )
 }
