@@ -12,6 +12,7 @@ import {
   addHeartReaction,
   type PhotoReactions 
 } from '@/lib/reactions'
+import { useClickHandler } from '@/hooks/useClickHandler'
 
 interface Photo {
   id: string
@@ -173,78 +174,59 @@ export default function Home() {
     }
   }, [])
 
+  // Helper function to show heart animation
+  const showHeartAnimation = useCallback((clientX: number, clientY: number) => {
+    const heart = document.createElement('div')
+    heart.innerHTML = '❤️'
+    heart.className = 'fixed pointer-events-none z-50 text-2xl'
+    heart.style.left = `${clientX - 12}px`
+    heart.style.top = `${clientY - 12}px`
+    heart.style.animation = 'heartPop 1s ease-out forwards'
+
+    // Add styles if not already added
+    if (!document.querySelector('#heart-animation-styles')) {
+      const style = document.createElement('style')
+      style.id = 'heart-animation-styles'
+      style.textContent = `
+        @keyframes heartPop {
+          0% { transform: scale(0) rotate(0deg); opacity: 1; }
+          50% { transform: scale(1.2) rotate(-10deg); opacity: 1; }
+          100% { transform: scale(0.8) rotate(0deg) translateY(-20px); opacity: 0; }
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    document.body.appendChild(heart)
+    setTimeout(() => {
+      if (document.body.contains(heart)) {
+        document.body.removeChild(heart)
+      }
+    }, 1000)
+  }, [])
+
   // Component for individual gallery photo with reactions
   const GalleryPhoto = ({ photo, index }: { photo: PhotoWithUrl; index: number }) => {
     const photoReactionsList = photoReactions[photo.id] || []
 
-    // Custom click handler that properly handles single and double taps
-    const handlePhotoClick = (e: React.MouseEvent) => {
-      // Store the original event properties since they may be nullified by React
-      const clientX = e.clientX
-      const clientY = e.clientY
-
-      // Check if this is a potential double-tap by looking at recent events
-      const now = Date.now()
-      const target = e.currentTarget as HTMLElement & { _lastClick?: number }
-      const lastClick = target._lastClick || 0
-      const timeDiff = now - lastClick
-      
-      target._lastClick = now
-
-      if (timeDiff < 300) {
-        // This is a double-tap, trigger heart reaction
-        e.preventDefault()
-        e.stopPropagation()
+    // Handle single vs double click/tap
+    const clickHandler = useClickHandler({
+      onSingleClick: () => {
+        openModal(index)
+      },
+      onDoubleClick: ({ clientX, clientY }) => {
         handleGalleryHeartReaction(photo.id)
-        
-        // Show heart animation
-        const heart = document.createElement('div')
-        heart.innerHTML = '❤️'
-        heart.className = 'fixed pointer-events-none z-50 text-2xl'
-        heart.style.left = `${clientX - 12}px`
-        heart.style.top = `${clientY - 12}px`
-        heart.style.animation = 'heartPop 1s ease-out forwards'
-
-        // Add styles if not already added
-        if (!document.querySelector('#heart-animation-styles')) {
-          const style = document.createElement('style')
-          style.id = 'heart-animation-styles'
-          style.textContent = `
-            @keyframes heartPop {
-              0% { transform: scale(0) rotate(0deg); opacity: 1; }
-              50% { transform: scale(1.2) rotate(-10deg); opacity: 1; }
-              100% { transform: scale(0.8) rotate(0deg) translateY(-20px); opacity: 0; }
-            }
-          `
-          document.head.appendChild(style)
-        }
-
-        document.body.appendChild(heart)
-        setTimeout(() => {
-          if (document.body.contains(heart)) {
-            document.body.removeChild(heart)
-          }
-        }, 1000)
-      } else {
-        // Single tap, open modal after a short delay to check for double-tap
-        setTimeout(() => {
-          const currentTime = Date.now()
-          const currentTarget = e.currentTarget as HTMLElement & { _lastClick?: number }
-          const lastClickTime = currentTarget._lastClick || 0
-          
-          // Only open modal if no double-tap happened in the last 300ms
-          if (currentTime - lastClickTime >= 300) {
-            openModal(index)
-          }
-        }, 310)
-      }
-    }
+        showHeartAnimation(clientX, clientY)
+      },
+      delay: 300
+    })
 
     return (
       <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
         <div 
           className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200 select-none"
-          onClick={handlePhotoClick}
+          onClick={clickHandler.onClick}
+          onTouchEnd={clickHandler.onTouchEnd}
         >
           {photo.imageUrl ? (
             <Image
