@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import Layout from '@/components/Layout'
 import Image from 'next/image'
@@ -47,13 +47,7 @@ export default function Home() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  useEffect(() => {
-    if (user) {
-      loadPhotos()
-    }
-  }, [user])
-
-  const getImageUrl = async (filePath: string): Promise<string | null> => {
+  const getImageUrl = useCallback(async (filePath: string): Promise<string | null> => {
     try {
       const { data, error } = await supabase.storage
         .from('family-photos')
@@ -69,9 +63,9 @@ export default function Home() {
       console.error('Error getting image URL:', error)
       return null
     }
-  }
+  }, [supabase])
 
-  const loadPhotos = async () => {
+  const loadPhotos = useCallback(async () => {
     setLoadingPhotos(true)
     try {
       const { data, error } = await supabase
@@ -96,7 +90,13 @@ export default function Home() {
     } finally {
       setLoadingPhotos(false)
     }
-  }
+  }, [supabase, getImageUrl])
+
+  useEffect(() => {
+    if (user) {
+      loadPhotos()
+    }
+  }, [user, loadPhotos])
 
   const signIn = async () => {
     if (!email) {
@@ -154,7 +154,7 @@ export default function Home() {
             Sign In with Magic Link
           </button>
           <p className="mt-4 text-sm text-gray-600">
-            We'll send you a secure login link
+            We&apos;ll send you a secure login link
           </p>
         </div>
       </main>
