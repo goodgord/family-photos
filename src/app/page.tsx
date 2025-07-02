@@ -230,7 +230,8 @@ export default function Home() {
         handleGalleryHeartReaction(photo.id)
         showHeartAnimation(clientX, clientY)
       },
-      delay: 300
+      delay: 300,
+      touchMoveThreshold: 10 // 10px movement threshold for distinguishing tap vs scroll
     })
 
     return (
@@ -238,6 +239,8 @@ export default function Home() {
         <div 
           className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200 select-none"
           onClick={clickHandler.onClick}
+          onTouchStart={clickHandler.onTouchStart}
+          onTouchMove={clickHandler.onTouchMove}
           onTouchEnd={clickHandler.onTouchEnd}
         >
           {photo.imageUrl ? (
