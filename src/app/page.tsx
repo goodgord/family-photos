@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import Layout from '@/components/Layout'
 import Image from 'next/image'
+import PhotoModal from '@/components/PhotoModal'
 
 interface Photo {
   id: string
@@ -26,6 +27,7 @@ export default function Home() {
   const [photos, setPhotos] = useState<PhotoWithUrl[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [email, setEmail] = useState('')
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -115,6 +117,26 @@ export default function Home() {
     }
   }
 
+  const openModal = (photoIndex: number) => {
+    setSelectedPhotoIndex(photoIndex)
+  }
+
+  const closeModal = () => {
+    setSelectedPhotoIndex(null)
+  }
+
+  const goToNext = () => {
+    if (selectedPhotoIndex !== null && selectedPhotoIndex < photos.length - 1) {
+      setSelectedPhotoIndex(selectedPhotoIndex + 1)
+    }
+  }
+
+  const goToPrevious = () => {
+    if (selectedPhotoIndex !== null && selectedPhotoIndex > 0) {
+      setSelectedPhotoIndex(selectedPhotoIndex - 1)
+    }
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-24">
@@ -162,6 +184,7 @@ export default function Home() {
   }
 
   return (
+    <>
     <Layout user={user}>
       <div>
         <div className="flex justify-between items-center mb-8">
@@ -185,9 +208,12 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="aspect-square relative">
+                <div 
+                  className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200"
+                  onClick={() => openModal(index)}
+                >
                   {photo.imageUrl ? (
                     <Image
                       src={photo.imageUrl}
@@ -217,5 +243,18 @@ export default function Home() {
         )}
       </div>
     </Layout>
+
+    {/* Photo Modal */}
+    {selectedPhotoIndex !== null && (
+      <PhotoModal
+        photos={photos}
+        currentIndex={selectedPhotoIndex}
+        isOpen={selectedPhotoIndex !== null}
+        onClose={closeModal}
+        onNext={goToNext}
+        onPrevious={goToPrevious}
+      />
+    )}
+  </>
   )
 }
