@@ -260,7 +260,7 @@ export default function PhotoModal({
   const modalContent = (
     <div 
       ref={modalRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300 overflow-hidden"
       onClick={handleBackdropClick}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -298,23 +298,30 @@ export default function PhotoModal({
       )}
 
       {/* Main Content */}
-      <div className="w-full h-full flex flex-col lg:flex-row items-start justify-center p-4 md:p-8 gap-6">
+      <div className="w-full h-full flex flex-col lg:flex-row items-stretch justify-center p-4 md:p-8 gap-6 max-w-7xl mx-auto">
         {/* Image Container */}
         <div className="relative flex-1 w-full lg:w-2/3 flex flex-col items-center justify-center min-h-0 space-y-4">
-          <div className="relative max-w-full max-h-full">
+          <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
             {currentPhoto.imageUrl ? (
               <div 
-                className="relative max-w-full max-h-full cursor-pointer select-none"
+                className="relative w-full h-full cursor-pointer select-none flex items-center justify-center"
                 {...doubleTapHandlers}
+                style={{ 
+                  width: '100%',
+                  height: '100%',
+                  maxWidth: '100%',
+                  maxHeight: 'calc(100vh - 200px)', // Leave space for UI elements
+                  minHeight: '300px'
+                }}
               >
                 <Image
                   src={currentPhoto.imageUrl}
                   alt={currentPhoto.original_filename}
-                  width={1200}
-                  height={800}
-                  className="max-w-full max-h-full object-contain transition-transform duration-300"
+                  fill
+                  className="object-contain transition-transform duration-300"
                   priority
                   draggable={false}
+                  sizes="(max-width: 768px) 95vw, (max-width: 1024px) 65vw, 55vw"
                 />
               </div>
             ) : (
@@ -325,7 +332,7 @@ export default function PhotoModal({
           </div>
 
           {/* Reactions Display Below Image - Mobile Only */}
-          <div className="flex flex-col items-center gap-2 lg:hidden">
+          <div className="flex flex-col items-center gap-2 lg:hidden flex-shrink-0 mt-4">
             <div className="flex items-center gap-4 flex-wrap justify-center">
               <ReactionButton
                 photoId={currentPhoto.id}
@@ -350,7 +357,7 @@ export default function PhotoModal({
         </div>
 
         {/* Comments and Info Section */}
-        <div className="w-full lg:w-1/3 lg:max-w-md flex flex-col max-h-full">
+        <div className="w-full lg:w-1/3 lg:max-w-md flex flex-col max-h-full lg:overflow-hidden flex-shrink-0">
           {/* Photo Information */}
           <div className="text-white space-y-2 mb-6">
             <h2 className="text-lg md:text-xl font-semibold">
