@@ -4,6 +4,16 @@ import { useEffect, useCallback, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import CommentsList from './CommentsList'
+import AddComment from './AddComment'
+import { 
+  loadComments, 
+  addComment, 
+  updateComment, 
+  deleteComment, 
+  getCurrentUser,
+  type Comment 
+} from '@/lib/comments'
 
 interface Photo {
   id: string
@@ -40,6 +50,11 @@ export default function PhotoModal({
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null)
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50
@@ -91,6 +106,57 @@ export default function PhotoModal({
     }
   }
 
+  // Load comments for current photo
+  const loadPhotoComments = useCallback(async (photoId: string) => {
+    setCommentsLoading(true)
+    try {
+      const photoComments = await loadComments(photoId)
+      setComments(photoComments)
+    } catch (error) {
+      console.error('Error loading comments:', error)
+      setComments([])
+    } finally {
+      setCommentsLoading(false)
+    }
+  }, [])
+
+  // Handle adding a new comment
+  const handleAddComment = useCallback(async (photoId: string, commentText: string) => {
+    try {
+      const newComment = await addComment(photoId, commentText)
+      setComments(prev => [...prev, newComment])
+    } catch (error) {
+      console.error('Error adding comment:', error)
+      throw error
+    }
+  }, [])
+
+  // Handle editing a comment
+  const handleEditComment = useCallback(async (commentId: string, newText: string) => {
+    try {
+      const updatedComment = await updateComment(commentId, newText)
+      setComments(prev => 
+        prev.map(comment => 
+          comment.id === commentId ? updatedComment : comment
+        )
+      )
+    } catch (error) {
+      console.error('Error editing comment:', error)
+      throw error
+    }
+  }, [])
+
+  // Handle deleting a comment
+  const handleDeleteComment = useCallback(async (commentId: string) => {
+    try {
+      await deleteComment(commentId)
+      setComments(prev => prev.filter(comment => comment.id !== commentId))
+    } catch (error) {
+      console.error('Error deleting comment:', error)
+      throw error
+    }
+  }, [])
+
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
@@ -104,6 +170,20 @@ export default function PhotoModal({
       document.body.style.overflow = 'unset'
     }
   }, [isOpen, handleKeyDown])
+
+  // Load current user when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      getCurrentUser().then(setCurrentUser)
+    }
+  }, [isOpen])
+
+  // Load comments when photo changes
+  useEffect(() => {
+    if (isOpen && currentPhoto) {
+      loadPhotoComments(currentPhoto.id)
+    }
+  }, [isOpen, currentPhoto, loadPhotoComments])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -156,9 +236,9 @@ export default function PhotoModal({
       )}
 
       {/* Main Content */}
-      <div className="w-full h-full flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="w-full h-full flex flex-col lg:flex-row items-start justify-center p-4 md:p-8 gap-6">
         {/* Image Container */}
-        <div className="relative flex-1 w-full max-w-5xl flex items-center justify-center">
+        <div className="relative flex-1 w-full lg:w-2/3 flex items-center justify-center min-h-0">
           {currentPhoto.imageUrl ? (
             <div className="relative max-w-full max-h-full">
               <Image
@@ -177,24 +257,55 @@ export default function PhotoModal({
           )}
         </div>
 
-        {/* Photo Information */}
-        <div className="w-full max-w-3xl mt-4 text-center text-white space-y-2">
-          <h2 className="text-lg md:text-xl font-semibold">
-            {currentPhoto.original_filename}
-          </h2>
-          {currentPhoto.caption && (
-            <p className="text-sm md:text-base text-gray-300">
-              {currentPhoto.caption}
+        {/* Comments and Info Section */}
+        <div className="w-full lg:w-1/3 lg:max-w-md flex flex-col max-h-full">
+          {/* Photo Information */}
+          <div className="text-white space-y-2 mb-6">
+            <h2 className="text-lg md:text-xl font-semibold">
+              {currentPhoto.original_filename}
+            </h2>
+            {currentPhoto.caption && (
+              <p className="text-sm md:text-base text-gray-300">
+                {currentPhoto.caption}
+              </p>
+            )}
+            <p className="text-xs md:text-sm text-gray-400">
+              Uploaded on {formatDate(currentPhoto.uploaded_at)}
             </p>
-          )}
-          <p className="text-xs md:text-sm text-gray-400">
-            Uploaded on {formatDate(currentPhoto.uploaded_at)}
-          </p>
-          {photos.length > 1 && (
-            <p className="text-xs text-gray-500">
-              {currentIndex + 1} of {photos.length}
-            </p>
-          )}
+            {photos.length > 1 && (
+              <p className="text-xs text-gray-500">
+                {currentIndex + 1} of {photos.length}
+              </p>
+            )}
+          </div>
+
+          {/* Comments Section */}
+          <div className="flex-1 bg-white rounded-lg p-4 overflow-hidden flex flex-col min-h-0">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Comments ({comments.length})
+            </h3>
+            
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto mb-4 min-h-0">
+              <CommentsList
+                comments={comments}
+                currentUserId={currentUser?.id || null}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+                loading={commentsLoading}
+              />
+            </div>
+
+            {/* Add Comment Form */}
+            {currentUser && (
+              <div className="border-t border-gray-200 pt-4">
+                <AddComment
+                  photoId={currentPhoto.id}
+                  onAddComment={handleAddComment}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
