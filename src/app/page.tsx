@@ -6,6 +6,13 @@ import { User } from '@supabase/supabase-js'
 import Layout from '@/components/Layout'
 import Image from 'next/image'
 import PhotoModal from '@/components/PhotoModal'
+import ReactionSummary from '@/components/ReactionSummary'
+import { 
+  loadMultiplePhotoReactions, 
+  addHeartReaction,
+  type PhotoReactions 
+} from '@/lib/reactions'
+import { useHeartReaction } from '@/hooks/useDoubleTap'
 
 interface Photo {
   id: string
@@ -28,6 +35,7 @@ export default function Home() {
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [email, setEmail] = useState('')
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
+  const [photoReactions, setPhotoReactions] = useState<PhotoReactions>({})
   const supabase = createClient()
 
   useEffect(() => {
@@ -86,6 +94,17 @@ export default function Home() {
           }))
         )
         setPhotos(photosWithUrls)
+        
+        // Load reactions for all photos
+        const photoIds = photosWithUrls.map(photo => photo.id)
+        if (photoIds.length > 0) {
+          try {
+            const reactions = await loadMultiplePhotoReactions(photoIds)
+            setPhotoReactions(reactions)
+          } catch (error) {
+            console.error('Error loading photo reactions:', error)
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading photos:', error)
@@ -135,6 +154,95 @@ export default function Home() {
     if (selectedPhotoIndex !== null && selectedPhotoIndex > 0) {
       setSelectedPhotoIndex(selectedPhotoIndex - 1)
     }
+  }
+
+  // Handle heart reaction for gallery photos
+  const handleGalleryHeartReaction = useCallback(async (photoId: string) => {
+    try {
+      await addHeartReaction(photoId)
+      // Reload reactions for this specific photo
+      const reactions = await loadMultiplePhotoReactions([photoId])
+      setPhotoReactions(prev => ({ ...prev, ...reactions }))
+    } catch (error) {
+      if (error instanceof Error && error.message === 'REACTION_REMOVED') {
+        // Heart was removed, reload reactions
+        const reactions = await loadMultiplePhotoReactions([photoId])
+        setPhotoReactions(prev => ({ ...prev, ...reactions }))
+      } else {
+        console.error('Error adding heart reaction:', error)
+      }
+    }
+  }, [])
+
+  // Component for individual gallery photo with reactions
+  const GalleryPhoto = ({ photo, index }: { photo: PhotoWithUrl; index: number }) => {
+    const doubleTapHandlers = useHeartReaction(
+      () => handleGalleryHeartReaction(photo.id),
+      false // Allow single tap to still open modal
+    )
+
+    const photoReactionsList = photoReactions[photo.id] || []
+
+    // Override the onClick handler to include modal opening logic
+    const combinedHandlers = {
+      ...doubleTapHandlers,
+      onClick: (e: React.MouseEvent) => {
+        // Call the original double-tap onClick logic
+        doubleTapHandlers.onClick(e)
+        // If not prevented by double-tap, open modal
+        setTimeout(() => {
+          if (!e.defaultPrevented) {
+            openModal(index)
+          }
+        }, 0)
+      }
+    }
+
+    return (
+      <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
+        <div 
+          className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200 select-none"
+          {...combinedHandlers}
+        >
+          {photo.imageUrl ? (
+            <Image
+              src={photo.imageUrl}
+              alt={photo.original_filename}
+              fill
+              className="object-cover"
+              draggable={false}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <p className="text-gray-500">Loading...</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Reactions below photo */}
+        {photoReactionsList.length > 0 && (
+          <div className="px-3 pt-2">
+            <ReactionSummary
+              reactions={photoReactionsList}
+              size="sm"
+              layout="compact"
+              maxDisplay={3}
+            />
+          </div>
+        )}
+        
+        {photo.caption && (
+          <div className="p-3">
+            <p className="text-sm text-gray-700">{photo.caption}</p>
+          </div>
+        )}
+        <div className="px-3 pb-3">
+          <p className="text-xs text-gray-500">
+            {new Date(photo.uploaded_at).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -209,35 +317,7 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {photos.map((photo, index) => (
-              <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <div 
-                  className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200"
-                  onClick={() => openModal(index)}
-                >
-                  {photo.imageUrl ? (
-                    <Image
-                      src={photo.imageUrl}
-                      alt={photo.original_filename}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <p className="text-gray-500">Loading...</p>
-                    </div>
-                  )}
-                </div>
-                {photo.caption && (
-                  <div className="p-3">
-                    <p className="text-sm text-gray-700">{photo.caption}</p>
-                  </div>
-                )}
-                <div className="px-3 pb-3">
-                  <p className="text-xs text-gray-500">
-                    {new Date(photo.uploaded_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
+              <GalleryPhoto key={photo.id} photo={photo} index={index} />
             ))}
           </div>
         )}

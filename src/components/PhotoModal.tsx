@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import CommentsList from './CommentsList'
 import AddComment from './AddComment'
+import ReactionButton from './ReactionButton'
+import ReactionSummary from './ReactionSummary'
 import { 
   loadComments, 
   addComment, 
@@ -14,6 +16,12 @@ import {
   getCurrentUser,
   type Comment 
 } from '@/lib/comments'
+import {
+  getReactionSummary,
+  addHeartReaction,
+  type ReactionSummary as ReactionSummaryType
+} from '@/lib/reactions'
+import { useHeartReaction } from '@/hooks/useDoubleTap'
 
 interface Photo {
   id: string
@@ -55,6 +63,10 @@ export default function PhotoModal({
   const [comments, setComments] = useState<Comment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null)
+
+  // Reactions state
+  const [reactions, setReactions] = useState<ReactionSummaryType[]>([])
+  const [, setReactionsLoading] = useState(false)
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50
@@ -157,6 +169,49 @@ export default function PhotoModal({
     }
   }, [])
 
+  // Load reactions for current photo
+  const loadPhotoReactions = useCallback(async (photoId: string) => {
+    setReactionsLoading(true)
+    try {
+      const photoReactions = await getReactionSummary(photoId)
+      setReactions(photoReactions)
+    } catch (error) {
+      console.error('Error loading reactions:', error)
+      setReactions([])
+    } finally {
+      setReactionsLoading(false)
+    }
+  }, [])
+
+  // Handle heart reaction from double-tap
+  const handleHeartReaction = useCallback(async () => {
+    if (!currentPhoto) return
+    
+    try {
+      await addHeartReaction(currentPhoto.id)
+      // Reload reactions to get updated counts
+      await loadPhotoReactions(currentPhoto.id)
+    } catch (error) {
+      if (error instanceof Error && error.message === 'REACTION_REMOVED') {
+        // Heart was removed, reload reactions
+        await loadPhotoReactions(currentPhoto.id)
+      } else {
+        console.error('Error adding heart reaction:', error)
+      }
+    }
+  }, [currentPhoto, loadPhotoReactions])
+
+  // Handle reaction change from ReactionButton
+  const handleReactionChange = useCallback(async () => {
+    if (!currentPhoto) return
+    
+    // Reload reactions to get updated counts
+    await loadPhotoReactions(currentPhoto.id)
+  }, [currentPhoto, loadPhotoReactions])
+
+  // Double-tap handlers for heart reactions
+  const doubleTapHandlers = useHeartReaction(handleHeartReaction, true)
+
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
@@ -184,6 +239,13 @@ export default function PhotoModal({
       loadPhotoComments(currentPhoto.id)
     }
   }, [isOpen, currentPhoto, loadPhotoComments])
+
+  // Load reactions when photo changes
+  useEffect(() => {
+    if (isOpen && currentPhoto) {
+      loadPhotoReactions(currentPhoto.id)
+    }
+  }, [isOpen, currentPhoto, loadPhotoReactions])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -238,23 +300,46 @@ export default function PhotoModal({
       {/* Main Content */}
       <div className="w-full h-full flex flex-col lg:flex-row items-start justify-center p-4 md:p-8 gap-6">
         {/* Image Container */}
-        <div className="relative flex-1 w-full lg:w-2/3 flex items-center justify-center min-h-0">
-          {currentPhoto.imageUrl ? (
-            <div className="relative max-w-full max-h-full">
-              <Image
-                src={currentPhoto.imageUrl}
-                alt={currentPhoto.original_filename}
-                width={1200}
-                height={800}
-                className="max-w-full max-h-full object-contain transition-transform duration-300"
-                priority
+        <div className="relative flex-1 w-full lg:w-2/3 flex flex-col items-center justify-center min-h-0 space-y-4">
+          <div className="relative max-w-full max-h-full">
+            {currentPhoto.imageUrl ? (
+              <div 
+                className="relative max-w-full max-h-full cursor-pointer select-none"
+                {...doubleTapHandlers}
+              >
+                <Image
+                  src={currentPhoto.imageUrl}
+                  alt={currentPhoto.original_filename}
+                  width={1200}
+                  height={800}
+                  className="max-w-full max-h-full object-contain transition-transform duration-300"
+                  priority
+                  draggable={false}
+                />
+              </div>
+            ) : (
+              <div className="w-64 h-64 bg-gray-800 flex items-center justify-center rounded-lg">
+                <p className="text-white">Loading...</p>
+              </div>
+            )}
+          </div>
+
+          {/* Reactions Display Below Image */}
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <ReactionButton
+              photoId={currentPhoto.id}
+              onReactionChange={handleReactionChange}
+              size="lg"
+            />
+            {reactions.length > 0 && (
+              <ReactionSummary
+                reactions={reactions}
+                size="lg"
+                layout="horizontal"
+                maxDisplay={7}
               />
-            </div>
-          ) : (
-            <div className="w-64 h-64 bg-gray-800 flex items-center justify-center rounded-lg">
-              <p className="text-white">Loading...</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Comments and Info Section */}
