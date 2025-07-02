@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Smile } from 'lucide-react'
 import { COMMON_EMOJIS, addOrUpdateReaction, getUserReaction, type Reaction } from '@/lib/reactions'
 
@@ -23,10 +23,19 @@ export default function ReactionButton({
   const pickerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  const loadUserReaction = useCallback(async () => {
+    try {
+      const reaction = await getUserReaction(photoId)
+      setUserReaction(reaction)
+    } catch (error) {
+      console.error('Error loading user reaction:', error)
+    }
+  }, [photoId])
+
   // Load user's current reaction when component mounts
   useEffect(() => {
     loadUserReaction()
-  }, [photoId])
+  }, [loadUserReaction])
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -42,15 +51,6 @@ export default function ReactionButton({
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showPicker])
-
-  const loadUserReaction = async () => {
-    try {
-      const reaction = await getUserReaction(photoId)
-      setUserReaction(reaction)
-    } catch (error) {
-      console.error('Error loading user reaction:', error)
-    }
-  }
 
   const handleEmojiClick = async (emoji: string) => {
     if (loading) return

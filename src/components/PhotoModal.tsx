@@ -325,19 +325,26 @@ export default function PhotoModal({
           </div>
 
           {/* Reactions Display Below Image */}
-          <div className="flex items-center gap-4 flex-wrap justify-center">
-            <ReactionButton
-              photoId={currentPhoto.id}
-              onReactionChange={handleReactionChange}
-              size="lg"
-            />
-            {reactions.length > 0 && (
-              <ReactionSummary
-                reactions={reactions}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-4 flex-wrap justify-center">
+              <ReactionButton
+                photoId={currentPhoto.id}
+                onReactionChange={handleReactionChange}
                 size="lg"
-                layout="horizontal"
-                maxDisplay={7}
               />
+              {reactions.length > 0 && (
+                <ReactionSummary
+                  reactions={reactions}
+                  size="lg"
+                  layout="horizontal"
+                  maxDisplay={7}
+                />
+              )}
+            </div>
+            {reactions.length === 0 && (
+              <p className="text-xs text-gray-400 text-center">
+                Double-tap image for ❤️ or click button for more reactions
+              </p>
             )}
           </div>
         </div>

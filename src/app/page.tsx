@@ -7,6 +7,7 @@ import Layout from '@/components/Layout'
 import Image from 'next/image'
 import PhotoModal from '@/components/PhotoModal'
 import ReactionSummary from '@/components/ReactionSummary'
+import ReactionButton from '@/components/ReactionButton'
 import { 
   loadMultiplePhotoReactions, 
   addHeartReaction,
@@ -174,6 +175,17 @@ export default function Home() {
     }
   }, [])
 
+  // Handle reaction change from ReactionButton in gallery
+  const handleGalleryReactionChange = useCallback(async (photoId: string) => {
+    try {
+      // Reload reactions for this specific photo
+      const reactions = await loadMultiplePhotoReactions([photoId])
+      setPhotoReactions(prev => ({ ...prev, ...reactions }))
+    } catch (error) {
+      console.error('Error updating gallery reactions:', error)
+    }
+  }, [])
+
   // Helper function to show heart animation
   const showHeartAnimation = useCallback((clientX: number, clientY: number) => {
     const heart = document.createElement('div')
@@ -244,16 +256,32 @@ export default function Home() {
         </div>
         
         {/* Reactions below photo */}
-        {photoReactionsList.length > 0 && (
-          <div className="px-3 pt-2">
-            <ReactionSummary
-              reactions={photoReactionsList}
-              size="sm"
-              layout="compact"
-              maxDisplay={3}
-            />
+        <div className="px-3 pt-2">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              {photoReactionsList.length > 0 ? (
+                <ReactionSummary
+                  reactions={photoReactionsList}
+                  size="sm"
+                  layout="compact"
+                  maxDisplay={3}
+                />
+              ) : (
+                <div className="text-xs text-gray-500">
+                  Double-tap for ❤️ or click to react
+                </div>
+              )}
+            </div>
+            <div className="ml-2">
+              <ReactionButton
+                photoId={photo.id}
+                onReactionChange={() => handleGalleryReactionChange(photo.id)}
+                size="sm"
+                showText={photoReactionsList.length === 0}
+              />
+            </div>
           </div>
-        )}
+        </div>
         
         {photo.caption && (
           <div className="p-3">
