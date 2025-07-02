@@ -12,7 +12,6 @@ import {
   addHeartReaction,
   type PhotoReactions 
 } from '@/lib/reactions'
-import { useHeartReaction } from '@/hooks/useDoubleTap'
 
 interface Photo {
   id: string
@@ -176,25 +175,68 @@ export default function Home() {
 
   // Component for individual gallery photo with reactions
   const GalleryPhoto = ({ photo, index }: { photo: PhotoWithUrl; index: number }) => {
-    const doubleTapHandlers = useHeartReaction(
-      () => handleGalleryHeartReaction(photo.id),
-      false // Allow single tap to still open modal
-    )
-
     const photoReactionsList = photoReactions[photo.id] || []
 
-    // Override the onClick handler to include modal opening logic
-    const combinedHandlers = {
-      ...doubleTapHandlers,
-      onClick: (e: React.MouseEvent) => {
-        // Call the original double-tap onClick logic
-        doubleTapHandlers.onClick(e)
-        // If not prevented by double-tap, open modal
+    // Custom click handler that properly handles single and double taps
+    const handlePhotoClick = (e: React.MouseEvent) => {
+      // Store the original event properties since they may be nullified by React
+      const clientX = e.clientX
+      const clientY = e.clientY
+
+      // Check if this is a potential double-tap by looking at recent events
+      const now = Date.now()
+      const target = e.currentTarget as HTMLElement & { _lastClick?: number }
+      const lastClick = target._lastClick || 0
+      const timeDiff = now - lastClick
+      
+      target._lastClick = now
+
+      if (timeDiff < 300) {
+        // This is a double-tap, trigger heart reaction
+        e.preventDefault()
+        e.stopPropagation()
+        handleGalleryHeartReaction(photo.id)
+        
+        // Show heart animation
+        const heart = document.createElement('div')
+        heart.innerHTML = '❤️'
+        heart.className = 'fixed pointer-events-none z-50 text-2xl'
+        heart.style.left = `${clientX - 12}px`
+        heart.style.top = `${clientY - 12}px`
+        heart.style.animation = 'heartPop 1s ease-out forwards'
+
+        // Add styles if not already added
+        if (!document.querySelector('#heart-animation-styles')) {
+          const style = document.createElement('style')
+          style.id = 'heart-animation-styles'
+          style.textContent = `
+            @keyframes heartPop {
+              0% { transform: scale(0) rotate(0deg); opacity: 1; }
+              50% { transform: scale(1.2) rotate(-10deg); opacity: 1; }
+              100% { transform: scale(0.8) rotate(0deg) translateY(-20px); opacity: 0; }
+            }
+          `
+          document.head.appendChild(style)
+        }
+
+        document.body.appendChild(heart)
         setTimeout(() => {
-          if (!e.defaultPrevented) {
+          if (document.body.contains(heart)) {
+            document.body.removeChild(heart)
+          }
+        }, 1000)
+      } else {
+        // Single tap, open modal after a short delay to check for double-tap
+        setTimeout(() => {
+          const currentTime = Date.now()
+          const currentTarget = e.currentTarget as HTMLElement & { _lastClick?: number }
+          const lastClickTime = currentTarget._lastClick || 0
+          
+          // Only open modal if no double-tap happened in the last 300ms
+          if (currentTime - lastClickTime >= 300) {
             openModal(index)
           }
-        }, 0)
+        }, 310)
       }
     }
 
@@ -202,7 +244,7 @@ export default function Home() {
       <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
         <div 
           className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200 select-none"
-          {...combinedHandlers}
+          onClick={handlePhotoClick}
         >
           {photo.imageUrl ? (
             <Image
