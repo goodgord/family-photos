@@ -324,8 +324,8 @@ export default function PhotoModal({
             )}
           </div>
 
-          {/* Reactions Display Below Image */}
-          <div className="flex flex-col items-center gap-2">
+          {/* Reactions Display Below Image - Mobile Only */}
+          <div className="flex flex-col items-center gap-2 lg:hidden">
             <div className="flex items-center gap-4 flex-wrap justify-center">
               <ReactionButton
                 photoId={currentPhoto.id}
@@ -373,6 +373,36 @@ export default function PhotoModal({
 
           {/* Comments Section */}
           <div className="flex-1 bg-white rounded-lg p-4 overflow-hidden flex flex-col min-h-0">
+            {/* Reactions Section - Desktop Only */}
+            <div className="hidden lg:block mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Reactions
+              </h3>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <ReactionButton
+                    photoId={currentPhoto.id}
+                    onReactionChange={handleReactionChange}
+                    size="md"
+                  />
+                  {reactions.length > 0 && (
+                    <ReactionSummary
+                      reactions={reactions}
+                      size="md"
+                      layout="horizontal"
+                      maxDisplay={7}
+                    />
+                  )}
+                </div>
+                {reactions.length === 0 && (
+                  <p className="text-xs text-gray-500">
+                    Double-tap image for ❤️ or click button for more reactions
+                  </p>
+                )}
+              </div>
+              <div className="border-b border-gray-200 mt-4"></div>
+            </div>
+
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Comments ({comments.length})
             </h3>
