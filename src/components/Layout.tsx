@@ -35,6 +35,12 @@ export default function Layout({ children, user }: LayoutProps) {
               >
                 Upload Photos
               </Link>
+              <Link 
+                href="/family" 
+                className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Family
+              </Link>
               <span className="text-sm text-gray-700">
                 {user.email}
               </span>

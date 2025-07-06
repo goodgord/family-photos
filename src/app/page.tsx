@@ -126,14 +126,14 @@ export default function Home() {
       return
     }
     
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-    })
+    // Import signInWithMagicLink dynamically to avoid SSR issues
+    const { signInWithMagicLink } = await import('@/lib/auth')
+    const result = await signInWithMagicLink(email)
     
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
+    if (result.success) {
       alert('Check your email for the login link!')
+    } else {
+      alert('Error: ' + result.error?.message)
     }
   }
 
