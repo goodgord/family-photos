@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    const resolvedParams = await params
     
     // Check if user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -30,7 +31,7 @@ export async function DELETE(
     const { data: memberToRemove, error: fetchError } = await supabase
       .from('family_members')
       .select('id, email, status, user_id')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .single()
 
     if (fetchError) {
@@ -47,7 +48,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('family_members')
       .delete()
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
 
     if (deleteError) {
       console.error('Error removing family member:', deleteError)
