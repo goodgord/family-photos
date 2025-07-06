@@ -125,17 +125,12 @@ DROP POLICY IF EXISTS "Users can insert family members" ON family_members;
 DROP POLICY IF EXISTS "Users can update family members" ON family_members;
 DROP POLICY IF EXISTS "Users can delete family members" ON family_members;
 
--- Policy: Active family members can view all family members and invitations
-CREATE POLICY "Active family members can view all members" ON family_members
+-- Policy: Allow public read access for invitation checking
+-- This is needed because unauthenticated users need to check if they're invited
+CREATE POLICY "Allow public read for invitations" ON family_members
   FOR SELECT 
-  TO authenticated 
-  USING (
-    EXISTS (
-      SELECT 1 FROM family_members fm 
-      WHERE fm.user_id = auth.uid() 
-      AND fm.status = 'active'
-    )
-  );
+  TO public
+  USING (true);
 
 -- Policy: Active family members can invite new members
 CREATE POLICY "Active family members can invite" ON family_members
