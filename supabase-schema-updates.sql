@@ -27,14 +27,14 @@ CREATE INDEX IF NOT EXISTS idx_family_members_status ON family_members(status);
 -- Make email required for invited members
 -- We'll handle this in the application logic for now
 
--- Create function to check if an email is invited
+-- Create function to check if an email is invited or already a family member
 CREATE OR REPLACE FUNCTION is_email_invited(user_email TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM family_members 
     WHERE email = user_email 
-    AND status = 'invited'
+    AND status IN ('invited', 'active')
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
