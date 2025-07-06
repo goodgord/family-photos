@@ -14,6 +14,8 @@ export async function signInWithMagicLink(email: string): Promise<{ success: boo
       user_email: email.toLowerCase()
     })
     
+    console.log('Invitation check result:', { invitation, inviteError, email: email.toLowerCase() })
+    
     if (inviteError) {
       console.error('Error checking invitation:', inviteError)
       return {
@@ -23,11 +25,27 @@ export async function signInWithMagicLink(email: string): Promise<{ success: boo
     }
     
     if (!invitation) {
-      return {
-        success: false,
-        error: { 
-          message: 'This email address has not been invited to join the family. Please ask an existing family member to invite you.',
-          code: 'NOT_INVITED'
+      // Also try querying the table directly as a fallback
+      const { data: memberCheck, error: memberError } = await supabase
+        .from('family_members')
+        .select('status')
+        .eq('email', email.toLowerCase())
+        .in('status', ['invited', 'active'])
+        .single()
+      
+      console.log('Direct member check:', { memberCheck, memberError })
+      
+      if (memberError && memberError.code !== 'PGRST116') {
+        console.error('Error in direct member check:', memberError)
+      }
+      
+      if (!memberCheck) {
+        return {
+          success: false,
+          error: { 
+            message: 'This email address has not been invited to join the family. Please ask an existing family member to invite you.',
+            code: 'NOT_INVITED'
+          }
         }
       }
     }
