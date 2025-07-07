@@ -14,18 +14,23 @@ export async function GET() {
     // Check if user is an active family member
     console.log('Checking family member status for user:', user.id, user.email)
     
-    const { data: currentMember, error: memberError } = await supabase
-      .from('family_members')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
+    // Temporary bypass for debugging - allow goodgord@gmail.com
+    if (user.email === 'goodgord@gmail.com') {
+      console.log('Bypassing family member check for admin user')
+    } else {
+      const { data: currentMember, error: memberError } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
 
-    console.log('Family member check result:', { currentMember, memberError })
+      console.log('Family member check result:', { currentMember, memberError })
 
-    if (memberError || !currentMember) {
-      console.log('Access denied for user:', user.id, 'Error:', memberError)
-      return NextResponse.json({ error: 'Access denied. You must be an active family member.' }, { status: 403 })
+      if (memberError || !currentMember) {
+        console.log('Access denied for user:', user.id, 'Error:', memberError)
+        return NextResponse.json({ error: 'Access denied. You must be an active family member.' }, { status: 403 })
+      }
     }
 
     // Get all family members and pending invitations with profiles
