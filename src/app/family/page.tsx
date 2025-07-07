@@ -39,7 +39,11 @@ export default function FamilyManagementPage() {
 
   useEffect(() => {
     if (user) {
-      loadFamilyMembers()
+      // Add a small delay to ensure auth is fully established
+      const timer = setTimeout(() => {
+        loadFamilyMembers()
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [user])
 
@@ -55,7 +59,31 @@ export default function FamilyManagementPage() {
         setIsAuthorized(true)
       } else {
         console.error('Error loading family members:', data.error)
-        setIsAuthorized(false)
+        // If it's a 403 (forbidden), retry once after a short delay
+        if (response.status === 403) {
+          console.log('Got 403, retrying in 500ms...')
+          setTimeout(async () => {
+            try {
+              const retryResponse = await fetch('/api/family')
+              const retryData = await retryResponse.json()
+              if (retryResponse.ok) {
+                setFamilyMembers(retryData.family_members)
+                setStats(retryData.stats)
+                setIsAuthorized(true)
+              } else {
+                setIsAuthorized(false)
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError)
+              setIsAuthorized(false)
+            } finally {
+              setLoadingMembers(false)
+            }
+          }, 500)
+          return // Don't set loading to false yet
+        } else {
+          setIsAuthorized(false)
+        }
       }
     } catch (error) {
       console.error('Error loading family members:', error)
