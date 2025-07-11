@@ -16,7 +16,7 @@ export default function FamilyManagementPage() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMemberWithProfile[]>([])
   const [stats, setStats] = useState<FamilyManagementStats>({ total_members: 0, active_members: 0, pending_invitations: 0 })
   const [loadingMembers, setLoadingMembers] = useState(false)
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -143,7 +143,20 @@ export default function FamilyManagementPage() {
     )
   }
 
-  if (!isAuthorized) {
+  if (isAuthorized === null || loadingMembers) {
+    return (
+      <Layout user={user}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+            <p className="text-gray-600">Checking your access permissions...</p>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (isAuthorized === false) {
     return (
       <Layout user={user}>
         <div className="max-w-4xl mx-auto">
