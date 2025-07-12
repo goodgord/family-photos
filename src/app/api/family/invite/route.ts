@@ -54,10 +54,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create invitation - use a temporary UUID for user_id since it's required
-    // This will be updated when the user actually accepts the invitation
-    const tempUserId = crypto.randomUUID()
-    
+    // Create invitation
     const { data: invitation, error: inviteError } = await supabase
       .from('family_members')
       .insert({
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
         status: 'invited',
         invited_by: user.id,
         invited_at: new Date().toISOString(),
-        user_id: tempUserId // Temporary UUID, will be updated when they accept
+        user_id: null // Will be set when they accept the invitation
       })
       .select('*')
       .single()
