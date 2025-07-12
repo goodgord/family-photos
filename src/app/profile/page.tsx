@@ -150,15 +150,13 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) {
+  if (loading || !user) {
     return (
-      <Layout user={user}>
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
-          </div>
+      <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-8">Loading...</h1>
         </div>
-      </Layout>
+      </main>
     )
   }
 
