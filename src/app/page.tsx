@@ -14,6 +14,8 @@ import {
   type PhotoReactions 
 } from '@/lib/reactions'
 import { useClickHandler } from '@/hooks/useClickHandler'
+import { getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
+import { User as UserIcon } from 'lucide-react'
 
 interface Photo {
   id: string
@@ -25,14 +27,15 @@ interface Photo {
   uploaded_by: string
 }
 
-interface PhotoWithUrl extends Photo {
+interface PhotoWithProfile extends Photo {
   imageUrl: string | null
+  uploader_profile: Profile | null
 }
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [photos, setPhotos] = useState<PhotoWithUrl[]>([])
+  const [photos, setPhotos] = useState<PhotoWithProfile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [email, setEmail] = useState('')
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
@@ -79,6 +82,7 @@ export default function Home() {
   const loadPhotos = useCallback(async () => {
     setLoadingPhotos(true)
     try {
+      // First get photos
       const { data, error } = await supabase
         .from('photos')
         .select('*')
@@ -87,11 +91,24 @@ export default function Home() {
       if (error) {
         console.error('Error loading photos:', error)
       } else if (data) {
-        // Get signed URLs for all photos
+        // Get unique uploader IDs
+        const uploaderIds = [...new Set(data.map(photo => photo.uploaded_by))]
+        
+        // Get profiles for all uploaders
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', uploaderIds)
+        
+        // Create a map of profiles by ID
+        const profileMap = new Map(profiles?.map(profile => [profile.id, profile]) || [])
+        
+        // Get signed URLs for all photos and add profile data
         const photosWithUrls = await Promise.all(
           data.map(async (photo) => ({
             ...photo,
-            imageUrl: await getImageUrl(photo.file_path)
+            imageUrl: await getImageUrl(photo.file_path),
+            uploader_profile: profileMap.get(photo.uploaded_by) || null
           }))
         )
         setPhotos(photosWithUrls)
@@ -218,7 +235,7 @@ export default function Home() {
   }, [])
 
   // Component for individual gallery photo with reactions
-  const GalleryPhoto = ({ photo, index }: { photo: PhotoWithUrl; index: number }) => {
+  const GalleryPhoto = ({ photo, index }: { photo: PhotoWithProfile; index: number }) => {
     const photoReactionsList = photoReactions[photo.id] || []
 
     // Handle single vs double click/tap
@@ -287,14 +304,32 @@ export default function Home() {
         </div>
         
         {photo.caption && (
-          <div className="p-3">
+          <div className="px-3 pb-2">
             <p className="text-sm text-gray-700">{photo.caption}</p>
           </div>
         )}
+        
+        {/* Uploader info */}
         <div className="px-3 pb-3">
-          <p className="text-xs text-gray-500">
-            {new Date(photo.uploaded_at).toLocaleDateString()}
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {getAvatarUrl(photo.uploader_profile) ? (
+                <img
+                  src={getAvatarUrl(photo.uploader_profile)!}
+                  alt="Uploader"
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <UserIcon className="w-4 h-4 text-gray-400" />
+              )}
+              <span className="text-xs text-gray-600">
+                {getDisplayName(photo.uploader_profile)}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              {new Date(photo.uploaded_at).toLocaleDateString()}
+            </p>
+          </div>
         </div>
       </div>
     )

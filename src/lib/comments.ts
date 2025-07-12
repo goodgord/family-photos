@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { type Profile } from '@/lib/supabase/profiles'
 
 export interface Comment {
   id: string
@@ -8,6 +9,7 @@ export interface Comment {
   created_at: string
   updated_at: string
   user_email?: string
+  user_profile?: Profile | null
 }
 
 const supabase = createClient()
@@ -43,32 +45,37 @@ export async function loadComments(photoId: string): Promise<Comment[]> {
     // Get unique user IDs
     const userIds = [...new Set(commentsData.map(comment => comment.user_id))]
     
-    // Create a map to store user emails (for now using user_id as fallback)
-    const userEmailMap: { [key: string]: string } = {}
+    // Get profiles for all comment authors
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds)
     
-    // For each user ID, try to get email from current session or use fallback
-    for (const userId of userIds) {
-      try {
-        // Check if this is the current user
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        if (currentUser && currentUser.id === userId) {
-          userEmailMap[userId] = currentUser.email || 'Unknown user'
-        } else {
-          // For other users, we'll use a fallback since we can't access their emails directly
-          userEmailMap[userId] = 'Family member'
-        }
-      } catch {
-        userEmailMap[userId] = 'Unknown user'
+    // Create a map of profiles by ID
+    const profileMap = new Map(profiles?.map(profile => [profile.id, profile]) || [])
+    
+    // Get current user for email fallback
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+    // Map comments with profile and email information
+    const commentsWithProfiles = commentsData.map(comment => {
+      const profile = profileMap.get(comment.user_id)
+      let userEmail = 'Unknown user'
+      
+      if (profile) {
+        userEmail = profile.email || 'Family member'
+      } else if (currentUser && currentUser.id === comment.user_id) {
+        userEmail = currentUser.email || 'Unknown user'
       }
-    }
+      
+      return {
+        ...comment,
+        user_email: userEmail,
+        user_profile: profile || null
+      }
+    })
 
-    // Map comments with user emails
-    const commentsWithEmails = commentsData.map(comment => ({
-      ...comment,
-      user_email: userEmailMap[comment.user_id] || 'Unknown user'
-    }))
-
-    return commentsWithEmails
+    return commentsWithProfiles
   } catch (error) {
     console.error('Error in loadComments:', error)
     throw error

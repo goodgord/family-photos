@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Edit2, Trash2, Check, X } from 'lucide-react'
+import { Edit2, Trash2, Check, X, User as UserIcon } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
+import { getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
 
 interface Comment {
   id: string
@@ -12,6 +13,7 @@ interface Comment {
   created_at: string
   updated_at: string
   user_email?: string
+  user_profile?: Profile | null
 }
 
 interface CommentsListProps {
@@ -101,14 +103,25 @@ export default function CommentsList({
         <div key={comment.id} className="border-b border-gray-200 pb-3 last:border-b-0">
           <div className="flex justify-between items-start gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {comment.user_email || 'Unknown user'}
-                </span>
-                <span className="text-xs text-gray-500 flex-shrink-0">
-                  {formatTimeAgo(comment.created_at)}
-                  {comment.updated_at !== comment.created_at && ' (edited)'}
-                </span>
+              <div className="flex items-center gap-2 mb-2">
+                {getAvatarUrl(comment.user_profile) ? (
+                  <img
+                    src={getAvatarUrl(comment.user_profile)!}
+                    alt="Commenter"
+                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <UserIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                )}
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    {getDisplayName(comment.user_profile)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {formatTimeAgo(comment.created_at)}
+                    {comment.updated_at !== comment.created_at && ' (edited)'}
+                  </span>
+                </div>
               </div>
               
               {editingId === comment.id ? (

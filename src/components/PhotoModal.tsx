@@ -3,11 +3,12 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, User as UserIcon } from 'lucide-react'
 import CommentsList from './CommentsList'
 import AddComment from './AddComment'
 import ReactionButton from './ReactionButton'
 import ReactionSummary from './ReactionSummary'
+import { getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
 import { 
   loadComments, 
   addComment, 
@@ -33,12 +34,13 @@ interface Photo {
   uploaded_by: string
 }
 
-interface PhotoWithUrl extends Photo {
+interface PhotoWithProfile extends Photo {
   imageUrl: string | null
+  uploader_profile: Profile | null
 }
 
 interface PhotoModalProps {
-  photos: PhotoWithUrl[]
+  photos: PhotoWithProfile[]
   currentIndex: number
   isOpen: boolean
   onClose: () => void
@@ -359,7 +361,7 @@ export default function PhotoModal({
         {/* Comments and Info Section */}
         <div className="w-full lg:w-1/3 lg:max-w-md flex flex-col max-h-full lg:overflow-hidden flex-shrink-0">
           {/* Photo Information */}
-          <div className="text-white space-y-2 mb-6">
+          <div className="text-white space-y-3 mb-6">
             <h2 className="text-lg md:text-xl font-semibold">
               {currentPhoto.original_filename}
             </h2>
@@ -368,9 +370,28 @@ export default function PhotoModal({
                 {currentPhoto.caption}
               </p>
             )}
-            <p className="text-xs md:text-sm text-gray-400">
-              Uploaded on {formatDate(currentPhoto.uploaded_at)}
-            </p>
+            
+            {/* Uploader Information */}
+            <div className="flex items-center space-x-2">
+              {getAvatarUrl(currentPhoto.uploader_profile) ? (
+                <img
+                  src={getAvatarUrl(currentPhoto.uploader_profile)!}
+                  alt="Uploader"
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <UserIcon className="w-5 h-5 text-gray-400" />
+              )}
+              <div>
+                <p className="text-sm text-gray-300">
+                  by {getDisplayName(currentPhoto.uploader_profile)}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {formatDate(currentPhoto.uploaded_at)}
+                </p>
+              </div>
+            </div>
+            
             {photos.length > 1 && (
               <p className="text-xs text-gray-500">
                 {currentIndex + 1} of {photos.length}
