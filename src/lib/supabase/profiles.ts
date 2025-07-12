@@ -53,9 +53,15 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<Profile | null> {
   const supabase = createClient()
   
+  // Add updated_at timestamp to the updates
+  const updatesWithTimestamp = {
+    ...updates,
+    updated_at: new Date().toISOString()
+  }
+  
   const { data, error } = await supabase
     .from('profiles')
-    .update(updates)
+    .update(updatesWithTimestamp)
     .eq('id', userId)
     .select('*')
     .single()
