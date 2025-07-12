@@ -11,8 +11,8 @@ export interface Profile {
 }
 
 export interface ProfileUpdate {
-  full_name?: string
-  avatar_url?: string
+  full_name?: string | null
+  avatar_url?: string | null
 }
 
 /**
