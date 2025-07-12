@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         
         const { data: emailResult, error: emailError } = await resend.emails.send({
-          from: 'Family Photos <noreply@family-photos.com>',
+          from: 'Family Photos <onboarding@resend.dev>',
           to: [email.toLowerCase()],
           subject: 'You\'re invited to join our family photos!',
           html: `
