@@ -2,7 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { User as UserIcon, Settings } from 'lucide-react'
+import { getCurrentUserProfile, getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -10,7 +13,19 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, user }: LayoutProps) {
+  const [profile, setProfile] = useState<Profile | null>(null)
   const supabase = createClient()
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const userProfile = await getCurrentUserProfile()
+      setProfile(userProfile)
+    }
+    
+    if (user) {
+      loadProfile()
+    }
+  }, [user])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -41,9 +56,38 @@ export default function Layout({ children, user }: LayoutProps) {
               >
                 Family
               </Link>
-              <span className="text-sm text-gray-700">
-                {user.email}
-              </span>
+              
+              {/* Profile Section */}
+              <div className="flex items-center space-x-3">
+                {/* Profile Link with Avatar */}
+                <Link 
+                  href="/profile" 
+                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  {getAvatarUrl(profile) ? (
+                    <img
+                      src={getAvatarUrl(profile)!}
+                      alt="Profile"
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserIcon className="w-5 h-5" />
+                  )}
+                  <span className="hidden sm:block">
+                    {getDisplayName(profile)}
+                  </span>
+                </Link>
+                
+                {/* Profile Settings Link */}
+                <Link 
+                  href="/profile" 
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded"
+                  title="Profile Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </Link>
+              </div>
+              
               <button
                 onClick={handleSignOut}
                 className="text-sm text-gray-500 hover:text-gray-700"
