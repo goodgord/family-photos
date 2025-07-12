@@ -374,10 +374,12 @@ export default function PhotoModal({
             {/* Uploader Information */}
             <div className="flex items-center space-x-2">
               {getAvatarUrl(currentPhoto.uploader_profile) ? (
-                <img
+                <Image
                   src={getAvatarUrl(currentPhoto.uploader_profile)!}
                   alt="Uploader"
-                  className="w-6 h-6 rounded-full object-cover"
+                  width={24}
+                  height={24}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <UserIcon className="w-5 h-5 text-gray-400" />

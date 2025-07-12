@@ -93,7 +93,7 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
       .remove([fileName])
     
     // Upload new avatar
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('avatars')
       .upload(fileName, compressedFile, {
         upsert: true,

@@ -314,10 +314,12 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {getAvatarUrl(photo.uploader_profile) ? (
-                <img
+                <Image
                   src={getAvatarUrl(photo.uploader_profile)!}
                   alt="Uploader"
-                  className="w-5 h-5 rounded-full object-cover"
+                  width={20}
+                  height={20}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <UserIcon className="w-4 h-4 text-gray-400" />

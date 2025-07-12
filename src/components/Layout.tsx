@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { User as UserIcon, Settings } from 'lucide-react'
 import { getCurrentUserProfile, getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
 
@@ -65,10 +66,12 @@ export default function Layout({ children, user }: LayoutProps) {
                   className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   {getAvatarUrl(profile) ? (
-                    <img
+                    <Image
                       src={getAvatarUrl(profile)!}
                       alt="Profile"
-                      className="w-6 h-6 rounded-full object-cover"
+                      width={24}
+                      height={24}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <UserIcon className="w-5 h-5" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import Image from 'next/image'
 import Layout from '@/components/Layout'
 import { 
   getCurrentUserProfile, 
@@ -197,10 +198,12 @@ export default function ProfilePage() {
               {/* Avatar Display */}
               <div className="relative">
                 {currentAvatarUrl ? (
-                  <img
+                  <Image
                     src={currentAvatarUrl}
                     alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover border-4 border-gray-200"
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
@@ -315,10 +318,12 @@ export default function ProfilePage() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Preview</h3>
           <div className="flex items-center space-x-3">
             {getAvatarUrl(profile) ? (
-              <img
+              <Image
                 src={getAvatarUrl(profile)!}
                 alt="Profile"
-                className="w-10 h-10 rounded-full object-cover"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
@@ -330,7 +335,7 @@ export default function ProfilePage() {
                 {getDisplayName(profile)}
               </p>
               <p className="text-sm text-gray-500">
-                This is how you'll appear to other family members
+                This is how you&apos;ll appear to other family members
               </p>
             </div>
           </div>

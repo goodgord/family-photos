@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Edit2, Trash2, Check, X, User as UserIcon } from 'lucide-react'
 import { formatTimeAgo } from '@/lib/utils'
 import { getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
@@ -105,10 +106,12 @@ export default function CommentsList({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 {getAvatarUrl(comment.user_profile) ? (
-                  <img
+                  <Image
                     src={getAvatarUrl(comment.user_profile)!}
                     alt="Commenter"
-                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                    width={24}
+                    height={24}
+                    className="rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
                   <UserIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
