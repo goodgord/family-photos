@@ -7,7 +7,6 @@ export interface Profile {
   full_name: string | null
   avatar_url: string | null
   created_at: string
-  updated_at: string
 }
 
 export interface ProfileUpdate {
@@ -53,15 +52,9 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<Profile | null> {
   const supabase = createClient()
   
-  // Add updated_at timestamp to the updates
-  const updatesWithTimestamp = {
-    ...updates,
-    updated_at: new Date().toISOString()
-  }
-  
   const { data, error } = await supabase
     .from('profiles')
-    .update(updatesWithTimestamp)
+    .update(updates)
     .eq('id', userId)
     .select('*')
     .single()
