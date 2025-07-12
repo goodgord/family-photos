@@ -105,9 +105,9 @@ export default function CommentsList({
           <div className="flex justify-between items-start gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                {getAvatarUrl(comment.user_profile) ? (
+                {getAvatarUrl(comment.user_profile || null) ? (
                   <Image
-                    src={getAvatarUrl(comment.user_profile)!}
+                    src={getAvatarUrl(comment.user_profile || null)!}
                     alt="Commenter"
                     width={24}
                     height={24}
@@ -118,7 +118,7 @@ export default function CommentsList({
                 )}
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-sm font-medium text-gray-900 truncate">
-                    {getDisplayName(comment.user_profile)}
+                    {getDisplayName(comment.user_profile || null)}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formatTimeAgo(comment.created_at)}
