@@ -64,12 +64,18 @@ export async function POST(request: NextRequest) {
         invited_at: new Date().toISOString(),
         user_id: null // Will be set when they accept
       })
-      .select('id, email, invitation_token, invited_at, status')
+      .select('*')
       .single()
 
     if (inviteError) {
       console.error('Error creating invitation:', inviteError)
+      console.error('Full error details:', JSON.stringify(inviteError, null, 2))
       return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
+    }
+
+    if (!invitation) {
+      console.error('No invitation data returned from insert')
+      return NextResponse.json({ error: 'Failed to create invitation - no data returned' }, { status: 500 })
     }
 
     // Create a profile entry for the invited user if full_name is provided
