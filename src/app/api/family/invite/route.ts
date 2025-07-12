@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
 import type { InvitationRequest, InvitationResponse } from '@/types/family'
 
 export async function POST(request: NextRequest) {
@@ -78,10 +79,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create invitation - no data returned' }, { status: 500 })
     }
 
-    // Create a profile entry for the invited user if full_name is provided
-    if (full_name) {
-      // We'll store this in a separate table or handle it when they accept
-      // For now, we'll just note that this would be where we'd store additional invite info
+    // Send invitation email
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        
+        const { data: emailResult, error: emailError } = await resend.emails.send({
+          from: 'Family Photos <noreply@family-photos.com>',
+          to: [email.toLowerCase()],
+          subject: 'You\'re invited to join our family photos!',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #333; text-align: center;">You're Invited!</h1>
+              <p>Hi${full_name ? ` ${full_name}` : ''},</p>
+              <p>You've been invited to join our private family photo sharing app. You can now sign in to view and share photos with the family.</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://family-photos-three.vercel.app'}" 
+                   style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Sign In to Family Photos
+                </a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                Simply click the link above and enter your email address (${email.toLowerCase()}) to get started. 
+                We'll send you a magic link to sign in securely.
+              </p>
+            </div>
+          `
+        })
+
+        if (emailError) {
+          console.error('Error sending invitation email:', emailError)
+          // Don't fail the whole invitation if email fails
+        } else {
+          console.log('Invitation email sent successfully:', emailResult)
+        }
+      } catch (emailError) {
+        console.error('Error with email service:', emailError)
+        // Don't fail the whole invitation if email fails
+      }
+    } else {
+      console.warn('RESEND_API_KEY not configured - invitation email not sent')
     }
 
     const response: InvitationResponse = {
