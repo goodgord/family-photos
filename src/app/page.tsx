@@ -15,7 +15,7 @@ import {
 } from '@/lib/reactions'
 import { useClickHandler } from '@/hooks/useClickHandler'
 import { getDisplayName, getAvatarUrl, type Profile } from '@/lib/supabase/profiles'
-import { User as UserIcon } from 'lucide-react'
+import { User as UserIcon, Check, X, FolderPlus } from 'lucide-react'
 
 interface Photo {
   id: string
@@ -40,6 +40,9 @@ export default function Home() {
   const [email, setEmail] = useState('')
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
   const [photoReactions, setPhotoReactions] = useState<PhotoReactions>({})
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set())
+  const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function Home() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
       }
@@ -234,18 +237,54 @@ export default function Home() {
     }, 1000)
   }, [])
 
+  // Selection mode helper functions
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode)
+    if (isSelectionMode) {
+      // Clear selections when exiting selection mode
+      setSelectedPhotoIds(new Set())
+    }
+  }
+
+  const togglePhotoSelection = (photoId: string) => {
+    const newSelection = new Set(selectedPhotoIds)
+    if (newSelection.has(photoId)) {
+      newSelection.delete(photoId)
+    } else {
+      newSelection.add(photoId)
+    }
+    setSelectedPhotoIds(newSelection)
+  }
+
+  const clearSelection = () => {
+    setSelectedPhotoIds(new Set())
+  }
+
+  const createAlbumFromSelection = () => {
+    if (selectedPhotoIds.size >= 2) {
+      setShowCreateAlbumModal(true)
+    }
+  }
+
   // Component for individual gallery photo with reactions
   const GalleryPhoto = ({ photo, index }: { photo: PhotoWithProfile; index: number }) => {
     const photoReactionsList = photoReactions[photo.id] || []
+    const isSelected = selectedPhotoIds.has(photo.id)
 
     // Handle single vs double click/tap
     const clickHandler = useClickHandler({
       onSingleClick: () => {
-        openModal(index)
+        if (isSelectionMode) {
+          togglePhotoSelection(photo.id)
+        } else {
+          openModal(index)
+        }
       },
       onDoubleClick: ({ clientX, clientY }) => {
-        handleGalleryHeartReaction(photo.id)
-        showHeartAnimation(clientX, clientY)
+        if (!isSelectionMode) {
+          handleGalleryHeartReaction(photo.id)
+          showHeartAnimation(clientX, clientY)
+        }
       },
       delay: 300,
       touchMoveThreshold: 10 // 10px movement threshold for distinguishing tap vs scroll
@@ -254,12 +293,28 @@ export default function Home() {
     return (
       <div key={photo.id} className="bg-white rounded-lg shadow overflow-hidden">
         <div 
-          className="aspect-square relative cursor-pointer hover:opacity-90 transition-opacity duration-200 select-none"
+          className={`aspect-square relative cursor-pointer transition-all duration-200 select-none ${
+            isSelectionMode 
+              ? (isSelected ? 'ring-4 ring-blue-500 opacity-80' : 'hover:ring-2 hover:ring-gray-300') 
+              : 'hover:opacity-90'
+          }`}
           onClick={clickHandler.onClick}
           onTouchStart={clickHandler.onTouchStart}
           onTouchMove={clickHandler.onTouchMove}
           onTouchEnd={clickHandler.onTouchEnd}
         >
+          {/* Selection checkbox */}
+          {isSelectionMode && (
+            <div className="absolute top-2 right-2 z-10">
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                isSelected 
+                  ? 'bg-blue-500 border-blue-500' 
+                  : 'bg-white border-gray-300 hover:border-blue-500'
+              }`}>
+                {isSelected && <Check className="w-4 h-4 text-white" />}
+              </div>
+            </div>
+          )}
           {photo.imageUrl ? (
             <Image
               src={photo.imageUrl}
@@ -361,7 +416,7 @@ export default function Home() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   signIn()
                 }
@@ -387,9 +442,56 @@ export default function Home() {
     <>
     <Layout user={user}>
       <div>
+        {/* Header with selection mode controls */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Our Sadiebug🐞 Photos</h1>
-          <p className="text-gray-600">{photos.length} photos</p>
+          {isSelectionMode ? (
+            <>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={clearSelection}
+                  className="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Clear Selection
+                </button>
+                <span className="text-lg font-medium text-gray-900">
+                  {selectedPhotoIds.size} photo{selectedPhotoIds.size !== 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                {selectedPhotoIds.size >= 2 && (
+                  <button
+                    onClick={createAlbumFromSelection}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    Create Album
+                  </button>
+                )}
+                <button
+                  onClick={toggleSelectionMode}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900">Our Photos</h1>
+              <div className="flex items-center space-x-4">
+                <p className="text-gray-600">{photos.length} photos</p>
+                {photos.length > 0 && (
+                  <button
+                    onClick={toggleSelectionMode}
+                    className="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Select Photos
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {loadingPhotos ? (
