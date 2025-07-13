@@ -351,7 +351,7 @@ export default function Home() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-24">
         <div className="text-center max-w-md">
-          <h1 className="text-4xl font-bold mb-8">Family Photos</h1>
+          <h1 className="text-4xl font-bold mb-8">Sadiebug🐞</h1>
           <p className="text-gray-600 mb-8">
             A private space for our family to share precious moments
           </p>
@@ -388,7 +388,7 @@ export default function Home() {
     <Layout user={user}>
       <div>
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Our Family Photos</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Our Sadiebug🐞 Photos</h1>
           <p className="text-gray-600">{photos.length} photos</p>
         </div>
 

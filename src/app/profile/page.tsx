@@ -169,7 +169,7 @@ export default function ProfilePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
           <p className="text-gray-600">
-            Manage your display name and avatar for the family photo app
+            Manage your display name and avatar for Sadiebug🐞
           </p>
         </div>
 

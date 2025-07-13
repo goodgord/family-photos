@@ -85,18 +85,18 @@ export async function POST(request: NextRequest) {
         const resend = new Resend(process.env.RESEND_API_KEY)
         
         const { data: emailResult, error: emailError } = await resend.emails.send({
-          from: 'Family Photos <onboarding@resend.dev>',
+          from: 'Sadiebug🐞 <onboarding@resend.dev>',
           to: [email.toLowerCase()],
-          subject: 'You\'re invited to join our family photos!',
+          subject: 'You\'re invited to join Sadiebug🐞!',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h1 style="color: #333; text-align: center;">You're Invited!</h1>
               <p>Hi${full_name ? ` ${full_name}` : ''},</p>
-              <p>You've been invited to join our private family photo sharing app. You can now sign in to view and share photos with the family.</p>
+              <p>You've been invited to join Sadiebug🐞! You can now sign in to view and share photos with the family.</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://family-photos-three.vercel.app'}" 
                    style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Sign In to Family Photos
+                  Sign In to Sadiebug🐞
                 </a>
               </div>
               <p style="color: #666; font-size: 14px;">

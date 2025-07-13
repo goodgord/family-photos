@@ -64,7 +64,7 @@ export default function InviteForm({ onInvite, isLoading }: InviteFormProps) {
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Invite Family Member</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Send an invitation to join your family photo sharing
+          Send an invitation to join Sadiebug🐞
         </p>
       </div>
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
