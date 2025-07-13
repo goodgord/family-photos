@@ -345,7 +345,7 @@ export async function logAlbumView(albumId: string, ipAddress?: string, userAgen
 export async function regenerateShareToken(albumId: string): Promise<string> {
   const supabase = createClient()
   
-  const { data: album, error } = await supabase
+  const { data, error } = await supabase
     .rpc('gen_random_uuid')
     .single()
 
@@ -353,7 +353,7 @@ export async function regenerateShareToken(albumId: string): Promise<string> {
     throw new Error('Failed to generate new token')
   }
 
-  const newToken = album
+  const newToken = data as string
 
   const { error: updateError } = await supabase
     .from('albums')
