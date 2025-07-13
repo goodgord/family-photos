@@ -252,9 +252,9 @@ export default function AlbumsPage() {
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center">
-                      {getAvatarUrl(album.creator) ? (
+                      {getAvatarUrl(album.creator || null) ? (
                         <Image
-                          src={getAvatarUrl(album.creator)!}
+                          src={getAvatarUrl(album.creator || null)!}
                           alt="Creator"
                           width={16}
                           height={16}
@@ -263,7 +263,7 @@ export default function AlbumsPage() {
                       ) : (
                         <UserIcon className="w-4 h-4 mr-1" />
                       )}
-                      <span>{getDisplayName(album.creator)}</span>
+                      <span>{getDisplayName(album.creator || null)}</span>
                     </div>
                     
                     <div className="flex items-center">
