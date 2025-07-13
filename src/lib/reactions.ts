@@ -41,13 +41,13 @@ export async function loadPhotoReactions(photoId: string): Promise<Reaction[]> {
 
     if (error) {
       console.error('Error loading reactions:', error)
-      throw error
+      return []
     }
 
     return data || []
   } catch (error) {
     console.error('Error in loadPhotoReactions:', error)
-    throw error
+    return []
   }
 }
 
@@ -66,7 +66,8 @@ export async function loadMultiplePhotoReactions(photoIds: string[]): Promise<Ph
 
     if (error) {
       console.error('Error loading multiple reactions:', error)
-      throw error
+      // Return empty object instead of throwing to prevent breaking the app
+      return {}
     }
 
     // Group reactions by photo_id and then by emoji
@@ -221,7 +222,7 @@ export async function getUserReaction(photoId: string): Promise<Reaction | null>
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Error getting user reaction:', error)
-      throw error
+      return null
     }
 
     return data || null

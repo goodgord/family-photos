@@ -123,6 +123,8 @@ export default function Home() {
             setPhotoReactions(reactions)
           } catch (error) {
             console.error('Error loading photo reactions:', error)
+            // Set empty reactions if loading fails
+            setPhotoReactions({})
           }
         }
       }
