@@ -42,7 +42,6 @@ export default function Home() {
   const [photoReactions, setPhotoReactions] = useState<PhotoReactions>({})
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set())
-  const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -262,7 +261,8 @@ export default function Home() {
 
   const createAlbumFromSelection = () => {
     if (selectedPhotoIds.size >= 2) {
-      setShowCreateAlbumModal(true)
+      // TODO: Open create album modal with selected photos
+      console.log('Create album with photos:', Array.from(selectedPhotoIds))
     }
   }
 

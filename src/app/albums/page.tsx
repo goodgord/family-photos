@@ -33,7 +33,6 @@ export default function AlbumsPage() {
   const [loading, setLoading] = useState(true)
   const [albums, setAlbums] = useState<AlbumWithPreview[]>([])
   const [loadingAlbums, setLoadingAlbums] = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 

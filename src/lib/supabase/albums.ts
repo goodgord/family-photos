@@ -22,7 +22,15 @@ export interface AlbumPhoto {
   added_by: string
   position: number
   added_at: string
-  photo?: any // Will be filled with photo data when needed
+  photo?: {
+    id: string
+    filename: string
+    original_filename: string
+    caption: string | null
+    file_path: string
+    uploaded_at: string
+    uploaded_by: string
+  } // Will be filled with photo data when needed
 }
 
 export interface CreateAlbumData {
