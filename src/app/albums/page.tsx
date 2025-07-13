@@ -75,7 +75,10 @@ export default function AlbumsPage() {
         albumsData.map(async (album) => {
           try {
             const photos = await getAlbumPhotos(album.id)
-            const previewPhotos = photos.slice(0, 4).map(ap => ap.photo?.file_path).filter(Boolean)
+            const previewPhotos = photos
+              .slice(0, 4)
+              .map(ap => ap.photo?.file_path)
+              .filter((path): path is string => Boolean(path))
             return { ...album, previewPhotos }
           } catch (error) {
             console.error(`Error loading photos for album ${album.id}:`, error)
