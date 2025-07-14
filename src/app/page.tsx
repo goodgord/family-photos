@@ -8,6 +8,7 @@ import Image from 'next/image'
 import PhotoModal from '@/components/PhotoModal'
 import ReactionSummary from '@/components/ReactionSummary'
 import ReactionButton from '@/components/ReactionButton'
+import CreateAlbumModal from '@/components/CreateAlbumModal'
 import { 
   loadMultiplePhotoReactions, 
   addHeartReaction,
@@ -42,6 +43,7 @@ export default function Home() {
   const [photoReactions, setPhotoReactions] = useState<PhotoReactions>({})
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set())
+  const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -263,9 +265,16 @@ export default function Home() {
 
   const createAlbumFromSelection = () => {
     if (selectedPhotoIds.size >= 2) {
-      // TODO: Open create album modal with selected photos
-      console.log('Create album with photos:', Array.from(selectedPhotoIds))
+      setShowCreateAlbumModal(true)
     }
+  }
+
+  const handleAlbumCreated = (albumId: string) => {
+    // Exit selection mode and clear selections
+    setIsSelectionMode(false)
+    setSelectedPhotoIds(new Set())
+    // Optionally navigate to the new album
+    console.log('Album created with ID:', albumId)
   }
 
   // Component for individual gallery photo with reactions
@@ -531,6 +540,14 @@ export default function Home() {
         onPrevious={goToPrevious}
       />
     )}
+
+    {/* Create Album Modal */}
+    <CreateAlbumModal
+      isOpen={showCreateAlbumModal}
+      onClose={() => setShowCreateAlbumModal(false)}
+      selectedPhotoIds={Array.from(selectedPhotoIds)}
+      onSuccess={handleAlbumCreated}
+    />
   </>
   )
 }
