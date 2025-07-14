@@ -26,6 +26,7 @@ import {
 
 interface AlbumWithPreview extends Album {
   previewPhotos: string[]
+  previewUrls: (string | null)[]
 }
 
 export default function AlbumsPage() {
@@ -79,10 +80,26 @@ export default function AlbumsPage() {
               .slice(0, 4)
               .map(ap => ap.photo?.file_path)
               .filter((path): path is string => Boolean(path))
-            return { ...album, previewPhotos }
+            
+            // Get signed URLs for preview photos
+            const previewUrls = await Promise.all(
+              previewPhotos.map(async (filePath) => {
+                try {
+                  const { data, error } = await supabase.storage
+                    .from('family-photos')
+                    .createSignedUrl(filePath, 60 * 60) // 1 hour
+                  return error ? null : data.signedUrl
+                } catch (error) {
+                  console.error('Error creating signed URL:', error)
+                  return null
+                }
+              })
+            )
+            
+            return { ...album, previewPhotos, previewUrls }
           } catch (error) {
             console.error(`Error loading photos for album ${album.id}:`, error)
-            return { ...album, previewPhotos: [] }
+            return { ...album, previewPhotos: [], previewUrls: [] }
           }
         })
       )
@@ -181,17 +198,17 @@ export default function AlbumsPage() {
                 {/* Album Preview */}
                 <Link href={`/albums/${album.id}`}>
                   <div className="aspect-square bg-gray-100 relative cursor-pointer">
-                    {album.previewPhotos.length > 0 ? (
+                    {album.previewUrls.length > 0 ? (
                       <div className="grid grid-cols-2 gap-1 h-full">
                         {Array.from({ length: 4 }).map((_, index) => (
                           <div key={index} className="relative bg-gray-200">
-                            {album.previewPhotos[index] ? (
-                              <div className="w-full h-full bg-gray-300 rounded">
-                                {/* Photo preview would go here - simplified for now */}
-                                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                                  <Images className="w-8 h-8 text-white opacity-70" />
-                                </div>
-                              </div>
+                            {album.previewUrls[index] ? (
+                              <Image
+                                src={album.previewUrls[index]!}
+                                alt={`Album preview ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
                             ) : (
                               <div className="w-full h-full bg-gray-200"></div>
                             )}
