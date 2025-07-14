@@ -87,13 +87,10 @@ export async function createAlbum(data: CreateAlbumData): Promise<Album> {
 export async function getAlbums(): Promise<Album[]> {
   const supabase = createClient()
   
+  // Get albums first
   const { data: albums, error } = await supabase
     .from('albums')
-    .select(`
-      *,
-      creator:profiles!albums_created_by_fkey(*),
-      album_photos(count)
-    `)
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -101,11 +98,41 @@ export async function getAlbums(): Promise<Album[]> {
     throw new Error(`Failed to fetch albums: ${error.message}`)
   }
 
-  // Transform the data to include photo count
+  if (!albums || albums.length === 0) {
+    return []
+  }
+
+  // Get unique creator IDs
+  const creatorIds = [...new Set(albums.map(album => album.created_by))]
+  
+  // Get profiles for all creators
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', creatorIds)
+  
+  // Create a map of profiles by ID
+  const profileMap = new Map(profiles?.map(profile => [profile.id, profile]) || [])
+
+  // Get photo counts for all albums
+  const albumIds = albums.map(album => album.id)
+  const { data: photoCounts } = await supabase
+    .from('album_photos')
+    .select('album_id')
+    .in('album_id', albumIds)
+
+  // Count photos per album
+  const photoCountMap = new Map()
+  photoCounts?.forEach(item => {
+    const count = photoCountMap.get(item.album_id) || 0
+    photoCountMap.set(item.album_id, count + 1)
+  })
+
+  // Transform the data to include photo count and creator
   return albums.map(album => ({
     ...album,
-    photo_count: album.album_photos?.[0]?.count || 0,
-    creator: album.creator || null
+    photo_count: photoCountMap.get(album.id) || 0,
+    creator: profileMap.get(album.created_by) || null
   }))
 }
 
@@ -117,10 +144,7 @@ export async function getAlbum(id: string): Promise<Album | null> {
   
   const { data: album, error } = await supabase
     .from('albums')
-    .select(`
-      *,
-      creator:profiles!albums_created_by_fkey(*)
-    `)
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -132,9 +156,16 @@ export async function getAlbum(id: string): Promise<Album | null> {
     throw new Error(`Failed to fetch album: ${error.message}`)
   }
 
+  // Get creator profile
+  const { data: creator } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', album.created_by)
+    .single()
+
   return {
     ...album,
-    creator: album.creator || null
+    creator: creator || null
   }
 }
 
@@ -146,10 +177,7 @@ export async function getAlbumByToken(token: string): Promise<Album | null> {
   
   const { data: album, error } = await supabase
     .from('albums')
-    .select(`
-      *,
-      creator:profiles!albums_created_by_fkey(*)
-    `)
+    .select('*')
     .eq('share_token', token)
     .eq('is_public', true)
     .single()
@@ -167,9 +195,16 @@ export async function getAlbumByToken(token: string): Promise<Album | null> {
     return null
   }
 
+  // Get creator profile
+  const { data: creator } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', album.created_by)
+    .single()
+
   return {
     ...album,
-    creator: album.creator || null
+    creator: creator || null
   }
 }
 
